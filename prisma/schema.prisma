@@ -1,0 +1,39 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       String    @id @default(cuid())
+  bounties Bounty[]
+  answers  Answer[]
+}
+
+model Bounty {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  question  String
+  reward    Float
+  latitude  Float
+  longitude Float
+  status    String   @default("open")
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id])
+  answers   Answer[]
+}
+
+model Answer {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  content   String
+  bountyId  String
+  authorId  String?
+  accepted  Boolean  @default(false)
+  bounty    Bounty   @relation(fields: [bountyId], references: [id])
+  author    User?    @relation(fields: [authorId], references: [id])
+} 
