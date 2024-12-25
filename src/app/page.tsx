@@ -31,6 +31,24 @@ export default function Home() {
     }
   }, [map, bounties]);
 
+  useEffect(() => {
+    // Get user's location when component mounts
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setMapCenter({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.log('Error getting location:', error);
+          // Keep default NYC coordinates if geolocation fails
+        }
+      );
+    }
+  }, []);
+
   const updateVisibleBounties = () => {
     if (!map) return;
     
@@ -106,16 +124,7 @@ export default function Home() {
       <div className="flex-1 p-4">
         <div className="flex gap-4 h-full max-w-[1920px] mx-auto">
           <div className="flex-1 rounded-xl overflow-hidden shadow-lg bg-white">
-            <LoadScript 
-              googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-              onError={(error) => {
-                const ignoredErrors = ['gen_204', 'CSP'];
-                if (!ignoredErrors.some(e => error.message.includes(e))) {
-                  console.error('Google Maps loading error:', error);
-                }
-              }}
-              loadingElement={<div>Loading map...</div>}
-            >
+            <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
               <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={mapCenter}
@@ -155,7 +164,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
       <BountyModal
         isOpen={isModalOpen}
         onClose={() => {

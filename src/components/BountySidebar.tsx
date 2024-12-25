@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bounty, Answer } from '@prisma/client';
 
 interface BountySidebarProps {
@@ -11,12 +11,18 @@ interface BountySidebarProps {
 
 export default function BountySidebar({ bounty, onClose, onAnswerSubmit }: BountySidebarProps) {
   const [answer, setAnswer] = useState('');
+  const [localBounty, setLocalBounty] = useState(bounty);
+
+  // Update local bounty when prop changes
+  useEffect(() => {
+    setLocalBounty(bounty);
+  }, [bounty]);
 
   const handleSubmitAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      const response = await fetch(`/api/bounties/${bounty!.id}/answers`, {
+      const response = await fetch(`/api/bounties/${localBounty!.id}/answers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,6 +31,14 @@ export default function BountySidebar({ bounty, onClose, onAnswerSubmit }: Bount
       });
 
       if (!response.ok) throw new Error('Failed to submit answer');
+      
+      const newAnswer = await response.json();
+      
+      // Update local bounty with new answer
+      setLocalBounty(prev => prev ? {
+        ...prev,
+        answers: [...prev.answers, newAnswer]
+      } : null);
       
       setAnswer('');
       onAnswerSubmit?.();
@@ -35,13 +49,13 @@ export default function BountySidebar({ bounty, onClose, onAnswerSubmit }: Bount
 
   return (
     <div className="w-96 h-screen bg-white shadow-lg">
-      {bounty ? (
+      {localBounty ? (
         <div className="h-full p-6 overflow-y-auto">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-3">{bounty.question}</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">{localBounty.question}</h2>
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium">
-                ${bounty.reward}
+                ${localBounty.reward}
               </div>
             </div>
             <button
@@ -56,11 +70,11 @@ export default function BountySidebar({ bounty, onClose, onAnswerSubmit }: Bount
 
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Answers</h3>
-            {bounty.answers.length === 0 ? (
+            {localBounty.answers.length === 0 ? (
               <p className="text-gray-500 text-center py-4">No answers yet</p>
             ) : (
               <div className="space-y-4">
-                {bounty.answers.map((answer) => (
+                {localBounty.answers.map((answer) => (
                   <div key={answer.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <p className="text-gray-800">{answer.content}</p>
                   </div>
