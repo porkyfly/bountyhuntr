@@ -150,6 +150,16 @@ export default function Home() {
                       `)}`,
                       scaledSize: new window.google.maps.Size(20, 20)
                     }}
+                    label={{
+                      text: `$${bounty.reward}`,
+                      color: '#000000',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      className: 'marker-label',
+                      background: '#FFFFFF',
+                      padding: '2px 4px',
+                      position: 'top'
+                    }}
                   />
                 ))}
               </GoogleMap>
