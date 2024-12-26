@@ -5,12 +5,14 @@ import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import BountyModal from "@/components/BountyModal";
 import BountySidebar from "@/components/BountySidebar";
 import BountyList from "@/components/BountyList";
-import { Bounty } from "@prisma/client";
+import { Bounty, Answer } from "@prisma/client";
+
+type BountyWithAnswers = Bounty & { answers: Answer[] };
 
 export default function Home() {
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [visibleBounties, setVisibleBounties] = useState<Bounty[]>([]);
-  const [selectedBounty, setSelectedBounty] = useState<Bounty | null>(null);
+  const [selectedBounty, setSelectedBounty] = useState<BountyWithAnswers | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clickedLocation, setClickedLocation] = useState<google.maps.LatLngLiteral | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -71,6 +73,12 @@ export default function Home() {
     setBounties(data);
   };
 
+  const fetchBountyWithAnswers = async (bountyId: string) => {
+    const response = await fetch(`/api/bounties/${bountyId}`);
+    const data = await response.json();
+    setSelectedBounty(data);
+  };
+
   const mapContainerStyle = {
     width: '100%',
     height: 'calc(100vh - 2rem)',
@@ -87,7 +95,7 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
-  const handleCreateBounty = async ({ question, reward }) => {
+  const handleCreateBounty = async ({ question, reward }: { question: string, reward: number }) => {
     if (!clickedLocation) return;
 
     try {
@@ -141,7 +149,7 @@ export default function Home() {
                   <Marker
                     key={bounty.id}
                     position={{ lat: bounty.latitude, lng: bounty.longitude }}
-                    onClick={() => setSelectedBounty(bounty)}
+                    onClick={() => fetchBountyWithAnswers(bounty.id)}
                     icon={{
                       url: `data:image/svg+xml,${encodeURIComponent(`
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -155,10 +163,7 @@ export default function Home() {
                       color: '#000000',
                       fontSize: '12px',
                       fontWeight: 'bold',
-                      className: 'marker-label',
-                      background: '#FFFFFF',
-                      padding: '2px 4px',
-                      position: 'top'
+                      className: 'marker-label'
                     }}
                   />
                 ))}
@@ -168,7 +173,7 @@ export default function Home() {
           <div className="w-72">
             <BountyList 
               bounties={visibleBounties}
-              onBountyClick={setSelectedBounty}
+              onBountyClick={fetchBountyWithAnswers}
               className="h-full"
             />
           </div>

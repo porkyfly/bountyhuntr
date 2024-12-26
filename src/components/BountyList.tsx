@@ -4,7 +4,7 @@ import { Bounty } from '@prisma/client';
 
 interface BountyListProps {
   bounties: Bounty[];
-  onBountyClick: (bounty: Bounty) => void;
+  onBountyClick: (bountyId: string) => void;
   className?: string;
 }
 
@@ -19,7 +19,7 @@ export default function BountyList({ bounties, onBountyClick, className = '' }: 
           bounties.map((bounty) => (
             <div
               key={bounty.id}
-              onClick={() => onBountyClick(bounty)}
+              onClick={() => onBountyClick(bounty.id)}
               className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-colors duration-200"
             >
               <div className="flex items-center justify-between">
