@@ -14,23 +14,25 @@ model User {
 }
 
 model Bounty {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  question  String
-  reward    Float
-  latitude  Float
-  longitude Float
-  status    String   @default("open")
-  authorId  String?
-  author    User?    @relation(fields: [authorId], references: [id])
-  answers   Answer[]
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  question      String
+  reward        Float
+  latitude      Float
+  longitude     Float
+  status        String    @default("open")
+  expiryMinutes Int?
+  authorId      String?
+  author        User?     @relation(fields: [authorId], references: [id])
+  answers       Answer[]
 }
 
 model Answer {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   content   String
+  imageUrl  String?
   bountyId  String
   authorId  String?
   accepted  Boolean  @default(false)

@@ -1,81 +1,95 @@
 'use client'
 
 import { useState } from 'react';
-import { Dialog } from '@headlessui/react';
 
 interface BountyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { question: string; reward: number }) => void;
+  onSubmit: (data: { question: string; reward: number; expiryMinutes?: number }) => void;
 }
 
 export default function BountyModal({ isOpen, onClose, onSubmit }: BountyModalProps) {
   const [question, setQuestion] = useState('');
-  const [reward, setReward] = useState('');
+  const [reward, setReward] = useState('0');
+  const [expiryMinutes, setExpiryMinutes] = useState('30');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({ question, reward: parseFloat(reward) });
-    setQuestion('');
-    setReward('');
-    onClose();
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    const rewardNumber = Number(reward);
+    const minutes = Number(expiryMinutes);
+    if (question.trim() && !isNaN(rewardNumber) && rewardNumber >= 0) {
+      onSubmit({ 
+        question: question.trim(), 
+        reward: rewardNumber,
+        expiryMinutes: !isNaN(minutes) ? minutes : 30
+      });
+      setQuestion('');
+      setReward('0');
+      setExpiryMinutes('30');
+    }
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="mx-auto max-w-sm w-full rounded-xl bg-white p-6 shadow-xl">
-          <Dialog.Title className="text-xl font-semibold text-gray-800 mb-6">
-            Create New Bounty
-          </Dialog.Title>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Question
-                <input
-                  type="text"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-800 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
-                  required
-                  placeholder="What would you like to know?"
-                />
-              </label>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reward ($)
-                <input
-                  type="number"
-                  value={reward}
-                  onChange={(e) => setReward(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-800 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
-                  required
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter reward amount"
-                />
-              </label>
-            </div>
-            <div className="flex justify-end space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Create Bounty
-              </button>
-            </div>
-          </form>
-        </Dialog.Panel>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <h2 className="text-xl font-semibold mb-4">Create a Bounty</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Question
+            </label>
+            <input
+              type="text"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="What would you like to know?"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reward ($)
+            </label>
+            <input
+              type="number"
+              value={reward}
+              onChange={(e) => setReward(e.target.value)}
+              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Enter reward amount"
+              min="0"
+              step="1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Expires in (minutes)
+            </label>
+            <input
+              type="number"
+              value={expiryMinutes}
+              onChange={(e) => setExpiryMinutes(e.target.value)}
+              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Enter number of minutes (optional)"
+              min="1"
+              step="1"
+            />
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={!question.trim() || !reward || Number(reward) < 0}
+            className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 
+              disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Create Bounty
+          </button>
+        </div>
       </div>
-    </Dialog>
+    </div>
   );
 } 

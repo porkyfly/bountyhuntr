@@ -2,12 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #f9fafb;
-  --foreground: #111827;
+/* Custom global styles */
+body {
+  @apply bg-gray-100 text-gray-900;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
+.marker-label {
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
 }
