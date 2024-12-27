@@ -26,6 +26,7 @@ CREATE TABLE "Answer" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "content" TEXT NOT NULL,
+    "imageUrl" TEXT,
     "bountyId" TEXT NOT NULL,
     "authorId" TEXT,
     "accepted" BOOLEAN NOT NULL DEFAULT false,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bounty, Answer } from "@prisma/client";
 import { getRemainingTime } from '@/utils/time';
 import Image from 'next/image';
@@ -20,44 +20,36 @@ export default function BountySidebar({
   onAnswerAdd,
   isMobile = false,
 }: BountySidebarProps) {
+  if (!bounty) {
+    return null;
+  }
+
   const [isMinimized, setIsMinimized] = useState(false);
   const [newAnswer, setNewAnswer] = useState('');
   const [optimisticAnswers, setOptimisticAnswers] = useState<{ [key: string]: boolean }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!bounty) return null;
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setSelectedImage(e.target.files[0]);
-    }
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!newAnswer.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
+    
     try {
       const formData = new FormData();
       formData.append('content', newAnswer);
-      if (selectedImage) {
-        formData.append('image', selectedImage);
-      }
 
       const response = await fetch(`/api/bounties/${bounty.id}/answers`, {
         method: 'POST',
-        body: formData,
+        body: formData
       });
 
-      if (!response.ok) throw new Error('Failed to submit answer');
+      if (!response.ok) {
+        throw new Error('Failed to submit answer');
+      }
+
       const answer = await response.json();
       setNewAnswer('');
-      setSelectedImage(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
       onAnswerAdd(answer);
     } catch (error) {
       console.error('Error submitting answer:', error);
@@ -176,27 +168,9 @@ export default function BountySidebar({
         </div>
 
         {/* Answer Input - Always show it */}
-        <div className="p-4 border-t bg-gray-50 sticky bottom-0">
-          {selectedImage && (
-            <div className="mb-2 relative">
-              <Image
-                src={URL.createObjectURL(selectedImage)}
-                alt="Selected image"
-                width={200}
-                height={200}
-                className="rounded-lg object-cover"
-              />
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="p-4 border-t bg-gray-50 sticky bottom-0">
           <textarea
+            name="content"
             value={newAnswer}
             onChange={(e) => setNewAnswer(e.target.value)}
             placeholder="Write your answer..."
@@ -204,22 +178,8 @@ export default function BountySidebar({
             rows={3}
           />
           <div className="mt-2 flex gap-2">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              ref={fileInputRef}
-              className="hidden"
-              id="image-upload"
-            />
-            <label
-              htmlFor="image-upload"
-              className="flex-none px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer"
-            >
-              Add Image
-            </label>
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={!newAnswer.trim() || isSubmitting}
               className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 
                 disabled:opacity-50 disabled:cursor-not-allowed text-center font-medium"
@@ -227,7 +187,7 @@ export default function BountySidebar({
               {isSubmitting ? 'Submitting...' : 'Submit Answer'}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     );
   }
@@ -338,27 +298,9 @@ export default function BountySidebar({
             </div>
 
             {/* Answer Input */}
-            <div className="p-4 border-t bg-gray-50 sticky bottom-0">
-              {selectedImage && (
-                <div className="mb-2 relative">
-                  <Image
-                    src={URL.createObjectURL(selectedImage)}
-                    alt="Selected image"
-                    width={200}
-                    height={200}
-                    className="rounded-lg object-cover"
-                  />
-                  <button
-                    onClick={() => setSelectedImage(null)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              )}
+            <form onSubmit={handleSubmit} className="p-4 border-t bg-gray-50 sticky bottom-0">
               <textarea
+                name="content"
                 value={newAnswer}
                 onChange={(e) => setNewAnswer(e.target.value)}
                 placeholder="Write your answer..."
@@ -366,22 +308,8 @@ export default function BountySidebar({
                 rows={3}
               />
               <div className="mt-2 flex gap-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  ref={fileInputRef}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="flex-none px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer"
-                >
-                  Add Image
-                </label>
                 <button
-                  onClick={handleSubmit}
+                  type="submit"
                   disabled={!newAnswer.trim() || isSubmitting}
                   className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 
                     disabled:opacity-50 disabled:cursor-not-allowed text-center font-medium"
@@ -389,7 +317,7 @@ export default function BountySidebar({
                   {isSubmitting ? 'Submitting...' : 'Submit Answer'}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
