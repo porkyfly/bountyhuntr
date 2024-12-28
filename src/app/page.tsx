@@ -49,22 +49,11 @@ export default function Home() {
     }
   }, [map, bounties]);
 
-  useEffect(() => {
-    const cached = window.localStorage.getItem('lastKnownLocation');
-    if (cached) {
-      try {
-        const parsedLocation = JSON.parse(cached);
-        setCenter(parsedLocation);
-      } catch (error) {
-        console.error('Error parsing cached location:', error);
-      }
-    }
-  }, []);
-
   const initializeUserLocation = async () => {
     setIsLoadingLocation(true);
+    let userLocation: { lat: number; lng: number } | null = null;
 
-    try {
+    try { // navigator geolocation
       if ("geolocation" in navigator) {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -74,39 +63,39 @@ export default function Home() {
           });
         });
 
-        const userLocation = {
+        userLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
 
         setCenter(userLocation);
-        window.localStorage.setItem('lastKnownLocation', JSON.stringify(userLocation));
         if (map) map.panTo(userLocation);
         setIsLoadingLocation(false);
-        return;
+        return; // Exit if geolocation is successful
       }
     } catch (error) {
       console.warn('Browser geolocation failed:', error);
     }
 
-    try {
+    try { // ipapi.co geolocation
       const response = await fetch('https://ipapi.co/json/');
       if (!response.ok) throw new Error('IP Geolocation failed');
       
       const data = await response.json();
-      const ipLocation = {
+      userLocation = {
         lat: parseFloat(data.latitude),
         lng: parseFloat(data.longitude)
       };
 
-      setCenter(ipLocation);
-      window.localStorage.setItem('lastKnownLocation', JSON.stringify(ipLocation));
-      if (map) map.panTo(ipLocation);
+      setCenter(userLocation);
+      if (map) map.panTo(userLocation);
+      setIsLoadingLocation(false);
+      return; // Exit if ipapi.co geolocation is successful
     } catch (error) {
       console.error('IP Geolocation failed:', error);
-    } finally {
-      setIsLoadingLocation(false);
     }
+
+    setIsLoadingLocation(false);
   };
 
   const updateVisibleBounties = () => {
