@@ -11,6 +11,9 @@ import SearchBox from '@/components/SearchBox';
 
 type BountyWithAnswers = Bounty & { answers: Answer[] };
 
+// Define libraries outside the component
+const libraries = ['places'];
+
 export default function Home() {
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [visibleBounties, setVisibleBounties] = useState<Bounty[]>([]);
@@ -49,18 +52,6 @@ export default function Home() {
     }
   }, [map, bounties]);
 
-  useEffect(() => {
-    const cached = window.localStorage.getItem('lastKnownLocation');
-    if (cached) {
-      try {
-        const parsedLocation = JSON.parse(cached);
-        setCenter(parsedLocation);
-      } catch (error) {
-        console.error('Error parsing cached location:', error);
-      }
-    }
-  }, []);
-
   const initializeUserLocation = async () => {
     setIsLoadingLocation(true);
 
@@ -80,7 +71,6 @@ export default function Home() {
         };
 
         setCenter(userLocation);
-        window.localStorage.setItem('lastKnownLocation', JSON.stringify(userLocation));
         if (map) map.panTo(userLocation);
         setIsLoadingLocation(false);
         return;
@@ -100,7 +90,6 @@ export default function Home() {
       };
 
       setCenter(ipLocation);
-      window.localStorage.setItem('lastKnownLocation', JSON.stringify(ipLocation));
       if (map) map.panTo(ipLocation);
     } catch (error) {
       console.error('IP Geolocation failed:', error);
@@ -203,7 +192,7 @@ export default function Home() {
   return (
     <LoadScript
       googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
-      libraries={['places']}
+      libraries={libraries}
     >
       <main className="relative h-screen w-screen overflow-hidden">
         <div className="absolute inset-0">
