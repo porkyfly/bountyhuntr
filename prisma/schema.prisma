@@ -21,11 +21,14 @@ model Bounty {
   reward        Float
   latitude      Float
   longitude     Float
-  status        String    @default("open")
+  answered      Boolean   @default(false)
+  expired       Boolean   @default(false)
   expiryMinutes Int?
   authorId      String?
   author        User?     @relation(fields: [authorId], references: [id])
   answers       Answer[]
+
+  @@index([expired])
 }
 
 model Answer {

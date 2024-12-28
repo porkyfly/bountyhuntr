@@ -14,7 +14,8 @@ CREATE TABLE "Bounty" (
     "reward" DOUBLE PRECISION NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'open',
+    "answered" BOOLEAN NOT NULL DEFAULT false,
+    "expired" BOOLEAN NOT NULL DEFAULT false,
     "expiryMinutes" INTEGER,
     "authorId" TEXT,
 

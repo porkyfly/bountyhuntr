@@ -230,7 +230,7 @@ export default function Home() {
                   icon={{
                     url: `data:image/svg+xml,${encodeURIComponent(`
                       <svg width="${getMarkerSize(bounty.id)}" height="${getMarkerSize(bounty.id)}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="10" cy="10" r="8" fill="${bounty.status === 'open' ? '#FF8C00' : '#00FF00'}" 
+                        <circle cx="10" cy="10" r="8" fill="${bounty.answered ? '#00FF00' : '#FF8C00'}" 
                           opacity="${hoveredBountyId === bounty.id || selectedBounty?.id === bounty.id ? '1' : '0.8'}"
                         />
                       </svg>
