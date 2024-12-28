@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from "react";
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { useEffect, useState, useCallback } from "react";
+import { GoogleMap, LoadScript, Marker, MarkerF } from '@react-google-maps/api';
 import { Bounty, Answer } from "@prisma/client";
 import MobileLayout from "@/components/MobileLayout";
 import DesktopLayout from "@/components/DesktopLayout";
 import BountyModal from "@/components/BountyModal";
 import { getRemainingTime } from '@/utils/time';
+import SearchBox from '@/components/SearchBox';
 
 type BountyWithAnswers = Bounty & { answers: Answer[] };
 
@@ -15,10 +16,21 @@ export default function Home() {
   const [visibleBounties, setVisibleBounties] = useState<Bounty[]>([]);
   const [selectedBounty, setSelectedBounty] = useState<BountyWithAnswers | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 });
   const [hoveredBountyId, setHoveredBountyId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clickedLocation, setClickedLocation] = useState<google.maps.LatLngLiteral | null>(null);
+  const [center, setCenter] = useState({ lat: 40.7128, lng: -74.0060 });
+  const [zoom, setZoom] = useState(12);
+  const [mapOptions, setMapOptions] = useState({
+    disableDefaultUI: false,
+    clickableIcons: false,
+    zoomControl: true,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+    gestureHandling: 'greedy',
+  });
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
   useEffect(() => {
     fetchBounties();
@@ -37,13 +49,64 @@ export default function Home() {
     }
   }, [map, bounties]);
 
-  const initializeUserLocation = () => {
-    navigator.geolocation?.getCurrentPosition(
-      (position) => setMapCenter({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      })
-    );
+  useEffect(() => {
+    const cached = window.localStorage.getItem('lastKnownLocation');
+    if (cached) {
+      try {
+        const parsedLocation = JSON.parse(cached);
+        setCenter(parsedLocation);
+      } catch (error) {
+        console.error('Error parsing cached location:', error);
+      }
+    }
+  }, []);
+
+  const initializeUserLocation = async () => {
+    setIsLoadingLocation(true);
+
+    try {
+      if ("geolocation" in navigator) {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          });
+        });
+
+        const userLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        setCenter(userLocation);
+        window.localStorage.setItem('lastKnownLocation', JSON.stringify(userLocation));
+        if (map) map.panTo(userLocation);
+        setIsLoadingLocation(false);
+        return;
+      }
+    } catch (error) {
+      console.warn('Browser geolocation failed:', error);
+    }
+
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      if (!response.ok) throw new Error('IP Geolocation failed');
+      
+      const data = await response.json();
+      const ipLocation = {
+        lat: parseFloat(data.latitude),
+        lng: parseFloat(data.longitude)
+      };
+
+      setCenter(ipLocation);
+      window.localStorage.setItem('lastKnownLocation', JSON.stringify(ipLocation));
+      if (map) map.panTo(ipLocation);
+    } catch (error) {
+      console.error('IP Geolocation failed:', error);
+    } finally {
+      setIsLoadingLocation(false);
+    }
   };
 
   const updateVisibleBounties = () => {
@@ -132,31 +195,39 @@ export default function Home() {
     }
   };
 
+  const handlePlaceSelect = (lat: number, lng: number) => {
+    setCenter({ lat, lng });
+    setZoom(15); // Zoom in when a place is selected
+  };
+
   return (
-    <div className="relative h-[100dvh] w-full">
-      <div className="absolute inset-0 z-0">
-        <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
+    <LoadScript
+      googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
+      libraries={['places']}
+    >
+      <main className="relative h-screen w-screen overflow-hidden">
+        <div className="absolute inset-0">
+          {isLoadingLocation && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-50 z-50">
+              <div className="text-lg font-semibold">Finding your location...</div>
+            </div>
+          )}
           <GoogleMap
             mapContainerStyle={{ width: '100%', height: '100%' }}
-            center={mapCenter}
-            zoom={12}
+            center={center}
+            zoom={zoom}
+            options={mapOptions}
+            onLoad={(map) => {
+              setMap(map);
+            }}
             onClick={(e) => {
               if (e.latLng) {
                 setClickedLocation({ lat: e.latLng.lat(), lng: e.latLng.lng() });
                 setIsModalOpen(true);
               }
             }}
-            onLoad={setMap}
-            options={{
-              disableDefaultUI: false,
-              clickableIcons: false,
-              zoomControl: true,
-              mapTypeControl: false,
-              streetViewControl: false,
-              fullscreenControl: false,
-              gestureHandling: 'greedy',
-            }}
           >
+            <SearchBox onPlaceSelect={handlePlaceSelect} />
             {map && visibleBounties.map((bounty) => {
               const remainingTime = getRemainingTime(bounty.expiryMinutes, bounty.createdAt);
               
@@ -187,43 +258,43 @@ export default function Home() {
               );
             })}
           </GoogleMap>
-        </LoadScript>
-      </div>
-
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        <div className="md:hidden">
-          <MobileLayout
-            bounties={visibleBounties}
-            selectedBounty={selectedBounty}
-            onBountyClick={fetchBountyWithAnswers}
-            onBountyHover={setHoveredBountyId}
-            onBountyClose={() => setSelectedBounty(null)}
-            onAnswerSubmit={fetchBounties}
-            onAnswerAdd={handleAnswerAdd}
-          />
         </div>
 
-        <div className="hidden md:block">
-          <DesktopLayout
-            bounties={visibleBounties}
-            selectedBounty={selectedBounty}
-            onBountyClick={fetchBountyWithAnswers}
-            onBountyHover={setHoveredBountyId}
-            onBountyClose={() => setSelectedBounty(null)}
-            onAnswerSubmit={fetchBounties}
-            onAnswerAdd={handleAnswerAdd}
-          />
-        </div>
-      </div>
+        <div className="absolute inset-0 z-10 pointer-events-none">
+          <div className="md:hidden">
+            <MobileLayout
+              bounties={visibleBounties}
+              selectedBounty={selectedBounty}
+              onBountyClick={fetchBountyWithAnswers}
+              onBountyHover={setHoveredBountyId}
+              onBountyClose={() => setSelectedBounty(null)}
+              onAnswerSubmit={fetchBounties}
+              onAnswerAdd={handleAnswerAdd}
+            />
+          </div>
 
-      <BountyModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setClickedLocation(null);
-        }}
-        onSubmit={handleCreateBounty}
-      />
-    </div>
+          <div className="hidden md:block">
+            <DesktopLayout
+              bounties={visibleBounties}
+              selectedBounty={selectedBounty}
+              onBountyClick={fetchBountyWithAnswers}
+              onBountyHover={setHoveredBountyId}
+              onBountyClose={() => setSelectedBounty(null)}
+              onAnswerSubmit={fetchBounties}
+              onAnswerAdd={handleAnswerAdd}
+            />
+          </div>
+        </div>
+
+        <BountyModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setClickedLocation(null);
+          }}
+          onSubmit={handleCreateBounty}
+        />
+      </main>
+    </LoadScript>
   );
 }
