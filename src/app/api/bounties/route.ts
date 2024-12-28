@@ -21,10 +21,36 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  const bounties = await prisma.bounty.findMany({
-    include: {
-      answers: true
-    }
-  });
-  return NextResponse.json(bounties);
+  try {
+    const now = new Date();
+
+    const bounties = await prisma.bounty.findMany({
+      where: {
+        OR: [
+          { expiryMinutes: null },  // Include bounties with no expiry
+          {
+            AND: [
+              { expiryMinutes: { not: null } },
+              {
+                createdAt: {
+                  gt: new Date(now.getTime() - (prisma.bounty.expiryMinutes || 0) * 60 * 1000)
+                }
+              }
+            ]
+          }
+        ]
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return NextResponse.json(bounties);
+  } catch (error) {
+    console.error('Error fetching bounties:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch bounties' },
+      { status: 500 }
+    );
+  }
 } 
