@@ -25,27 +25,19 @@ export async function GET() {
     const now = new Date();
 
     const bounties = await prisma.bounty.findMany({
-      where: {
-        OR: [
-          { expiryMinutes: null },  // Include bounties with no expiry
-          {
-            AND: [
-              { expiryMinutes: { not: null } },
-              {
-                createdAt: {
-                  gt: new Date(now.getTime() - (prisma.bounty.expiryMinutes || 0) * 60 * 1000)
-                }
-              }
-            ]
-          }
-        ]
-      },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    return NextResponse.json(bounties);
+    // Filter out expired bounties
+    const filteredBounties = bounties.filter(bounty => {
+      if (!bounty.expiryMinutes) return true; // Keep bounties with no expiry
+      const expiryTime = new Date(bounty.createdAt.getTime() + bounty.expiryMinutes * 60 * 1000);
+      return expiryTime > now;
+    });
+
+    return NextResponse.json(filteredBounties);
   } catch (error) {
     console.error('Error fetching bounties:', error);
     return NextResponse.json(
