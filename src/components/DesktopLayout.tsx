@@ -26,7 +26,7 @@ export default function DesktopLayout({
   return (
     <div className="absolute inset-0 grid grid-cols-[auto_1fr_auto]">
       {/* Left Sidebar - BountySidebar */}
-      <div className="z-10 pointer-events-auto">
+      <div className="z-10 pointer-events-auto h-screen overflow-y-auto">
         <BountySidebar
           bounty={selectedBounty}
           onClose={onBountyClose}
@@ -40,7 +40,7 @@ export default function DesktopLayout({
       <div className="z-0" />
 
       {/* Right Sidebar - BountyList */}
-      <div className="z-10 pointer-events-auto">
+      <div className="z-10 pointer-events-auto h-screen overflow-y-auto">
         <BountyList
           bounties={bounties}
           onBountyClick={onBountyClick}
