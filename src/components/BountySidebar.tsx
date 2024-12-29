@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Bounty, Answer } from "@prisma/client";
 import { getRemainingTime } from '@/utils/time';
 import Image from 'next/image';
+import ImageDropzone from './ImageDropzone';
 
 interface BountySidebarProps {
   bounty: (Bounty & { answers: Answer[] }) | null;
@@ -19,6 +20,7 @@ export default function BountySidebar({ bounty, onClose, onAnswerSubmit, onAnswe
   const [newAnswer, setNewAnswer] = useState('');
   const [optimisticAnswers, setOptimisticAnswers] = useState<{ [key: string]: boolean }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -28,6 +30,10 @@ export default function BountySidebar({ bounty, onClose, onAnswerSubmit, onAnswe
     try {
       const formData = new FormData();
       formData.append('content', newAnswer);
+      if (imageUrl) {
+        formData.append('imageUrl', imageUrl);
+      }
+
       const response = await fetch(`/api/bounties/${bounty.id}/answers`, {
         method: 'POST',
         body: formData
@@ -37,6 +43,7 @@ export default function BountySidebar({ bounty, onClose, onAnswerSubmit, onAnswe
 
       const answer = await response.json();
       setNewAnswer('');
+      setImageUrl(null);
       onAnswerAdd(answer);
     } catch (error) {
       console.error('Error submitting answer:', error);
@@ -128,6 +135,26 @@ export default function BountySidebar({ bounty, onClose, onAnswerSubmit, onAnswe
           className="w-full p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
           rows={3}
         />
+        
+        <ImageDropzone onImageUploaded={setImageUrl} />
+        
+        {imageUrl && (
+          <div className="mt-2 relative">
+            <img 
+              src={imageUrl} 
+              alt="Upload preview" 
+              className="rounded-lg max-h-40 w-auto object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => setImageUrl(null)}
+              className="absolute top-2 right-2 p-1 bg-white rounded-full shadow hover:bg-gray-100"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <div className="mt-2 flex gap-2">
           <button
             type="submit"
